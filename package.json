@@ -1,7 +1,7 @@
 {
-	"name": "workflows-starter-template",
+	"name": "evidencia-envios",
 	"private": true,
-	"description": "Interactive starter template demonstrating Cloudflare Workflows with real-time status updates",
+	"description": "Evidencia fotográfica de envíos: lotes de fotos, detección de guía con IA y PDF por guía",
 	"cloudflare": {
 		"label": "Workflows Starter",
 		"products": [
@@ -20,6 +20,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
+		"dev:offline": "vite --mode offline",
+		"hot-folder": "node scripts/hot-folder.mjs",
 		"build": "tsc -b && vite build",
 		"check": "tsc && wrangler deploy --dry-run",
 		"lint": "eslint .",
@@ -29,6 +31,7 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"pdf-lib": "^1.17.1",
 		"react": "^19.1.2",
 		"react-dom": "^19.1.2"
 	},

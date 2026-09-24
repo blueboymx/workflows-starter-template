@@ -6,9 +6,7 @@ export default {
 		extend: {
 			colors: {
 				surface: "#ffffff",
-			},
-			animation: {
-				pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+				brand: { DEFAULT: "#0061b8", dark: "#004c91" },
 			},
 		},
 	},

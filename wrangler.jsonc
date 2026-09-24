@@ -4,49 +4,70 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "workflows-starter-template",
+	"name": "evidencia-envios",
 	"main": "worker/index.ts",
 	"compatibility_date": "2025-10-08",
 	"assets": {
 		"directory": "./dist",
-		"not_found_handling": "single-page-application"
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		// Sin esto, abrir /api/.../pdf en el navegador devolvería index.html
+		"run_worker_first": ["/api/*", "/ws"]
 	},
 	"observability": {
 		"enabled": true
 	},
+	"vars": {
+		// Modelo de visión de Workers AI que lee guías y facturas
+		"VISION_MODEL": "@cf/meta/llama-4-scout-17b-16e-instruct",
+		"TIMEZONE": "America/Mexico_City"
+	},
 	/**
-	 * Workflows
-	 * Define Workflows to orchestrate multi-step processes
-	 * https://developers.cloudflare.com/workflows/
+	 * Workers AI: lectura de guías / facturas en las fotos
 	 */
-	"workflows": [
+	"ai": {
+		"binding": "AI"
+	},
+	/**
+	 * R2: fotos originales y PDFs generados
+	 * Crear con: npx wrangler r2 bucket create evidencia-envios
+	 */
+	"r2_buckets": [
 		{
-			"name": "my-workflow",
-			"binding": "MY_WORKFLOW",
-			"class_name": "MyWorkflow"
+			"binding": "PHOTOS",
+			"bucket_name": "evidencia-envios"
 		}
 	],
 	/**
-	 * Durable Objects
-	 * Used for WebSocket state management and real-time updates
-	 * https://developers.cloudflare.com/durable-objects/
+	 * Workflow que procesa cada lote de fotos
+	 */
+	"workflows": [
+		{
+			"name": "package-batch",
+			"binding": "PACKAGE_WORKFLOW",
+			"class_name": "PackageBatchWorkflow"
+		}
+	],
+	/**
+	 * Durable Object con el estado de los lotes y los WebSockets en vivo
 	 */
 	"durable_objects": {
 		"bindings": [
 			{
-				"name": "WORKFLOW_STATUS",
-				"class_name": "WorkflowStatusDO"
+				"name": "SHIPMENTS",
+				"class_name": "ShipmentsDO"
 			}
 		]
 	},
-	/**
-	 * Migrations
-	 * Required for Durable Objects
-	 */
 	"migrations": [
 		{
 			"tag": "v1",
 			"new_sqlite_classes": ["WorkflowStatusDO"]
+		},
+		{
+			"tag": "v2",
+			"new_sqlite_classes": ["ShipmentsDO"],
+			"deleted_classes": ["WorkflowStatusDO"]
 		}
 	],
 	"upload_source_maps": true
