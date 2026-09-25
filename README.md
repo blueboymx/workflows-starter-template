@@ -6,7 +6,7 @@ App web (pensada para el teléfono) para identificar las fotos de los paquetes q
 2. **"¿Hay más fotos de este envío?"** Después de cada subida la app pregunta. Mientras el lote está abierto, todas las fotos van a ese lote. Al contestar "No" se cierra y **ya no acepta más fotos**, así que dos envíos no se mezclan.
 3. **Detección con IA.** Workers AI (modelo de visión) revisa cada foto: si es guía, factura o paquete, y lee el número de guía, la paquetería y el número de factura.
 4. **Confirmación.** La app muestra lo que encontró y pregunta cuál es la guía. Se puede corregir o capturar a mano.
-5. **PDF.** Se genera un PDF **tamaño carta vertical** con el logotipo de RETAIL INTELIGENCIA ANALITICA, el número de guía en el título y todas las fotos del lote (una por página, primero la de la guía). El archivo se llama `<número de guía>.pdf`.
+5. **PDF.** Se genera un PDF **tamaño carta vertical** con el logotipo de RETAIL INTELIGENCIA ANALITICA, el número de guía en el título y todas las fotos del lote en una **retícula de 1, 2, 3, 4, 6 o 9 fotos por página** (primero la de la guía). El archivo se llama `<número de guía>.pdf`.
 6. **Flujo de envíos (opcional).** Al terminar se manda un webhook con la guía, la factura y el enlace al PDF, para conectar el flujo complementario de envíos.
 
 ## Arquitectura (Cloudflare)
@@ -27,6 +27,19 @@ npx wrangler login
 npx wrangler r2 bucket create evidencia-envios
 npm run deploy
 ```
+
+### Retícula del PDF
+
+| Fotos por página | Columnas × filas |
+| --- | --- |
+| 1 | 1 × 1 |
+| 2 | 1 × 2 |
+| 3 | 1 × 3 |
+| 4 | 2 × 2 |
+| 6 | 2 × 3 |
+| 9 | 3 × 3 |
+
+El valor predeterminado se define en `wrangler.jsonc` con `PDF_PHOTOS_PER_PAGE` (`"1"`, `"2"`, `"3"`, `"4"`, `"6"`, `"9"` o `"auto"`). Con `auto` se usa la retícula más chica donde caben todas las fotos (máx. 9 por página; si hay más, se agregan páginas). Al confirmar la guía se puede elegir otra retícula sólo para ese lote.
 
 ### Logotipo
 
@@ -88,7 +101,7 @@ npm run lint
 | GET | `/api/batches/:id` | Detalle |
 | POST | `/api/batches/:id/photos` | Sube fotos (multipart, campo `photos`, JPG/PNG ≤ 20 MB) |
 | POST | `/api/batches/:id/close` | Cierra el lote e inicia el procesamiento |
-| POST | `/api/batches/:id/confirm` | `{"guideNumber","carrier","invoiceNumber","sourcePhotoId"}` |
+| POST | `/api/batches/:id/confirm` | `{"guideNumber","carrier","invoiceNumber","sourcePhotoId","photosPerPage"}` (`photosPerPage`: 1, 2, 3, 4, 6, 9 o `null` = predeterminado) |
 | DELETE | `/api/batches/:id` | Descarta un lote abierto o con error |
 | GET | `/api/batches/:id/pdf` | PDF |
 | GET | `/api/batches/:id/photos/:photoId` | Foto |

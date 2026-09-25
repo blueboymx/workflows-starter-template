@@ -1,7 +1,7 @@
 import { WorkflowEntrypoint, WorkflowStep } from "cloudflare:workers";
 import type { WorkflowEvent } from "cloudflare:workers";
 import { NonRetryableError } from "cloudflare:workflows";
-import type { ConfirmedGuide, Photo, PhotoAnalysis } from "./types";
+import { isPhotosPerPage, type ConfirmedGuide, type Photo, type PhotoAnalysis } from "./types";
 import { analyzePhoto } from "./ai";
 import { buildBatchPdf } from "./pdf";
 import { detectImageType } from "./lib/image";
@@ -119,9 +119,16 @@ export class PackageBatchWorkflow extends WorkflowEntrypoint<Env, BatchParams> {
 						}
 					}
 
+					// Retícula: la elegida al confirmar o la de PDF_PHOTOS_PER_PAGE
+					const configured = Number(this.env.PDF_PHOTOS_PER_PAGE);
 					const bytes = await buildBatchPdf({
 						batchId,
-						guide,
+						guide: {
+							...guide,
+							photosPerPage:
+								guide.photosPerPage ??
+								(isPhotosPerPage(configured) ? configured : null),
+						},
 						photos: images,
 						logo: await loadLogo(this.env),
 						generatedAt: new Date(),

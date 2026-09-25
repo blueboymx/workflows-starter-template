@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import type { Batch, Candidate } from "../../worker/types";
+import type { Batch, Candidate, PhotosPerPage } from "../../worker/types";
+import { PHOTOS_PER_PAGE } from "../../worker/types";
 import { toFileName } from "../../worker/lib/guide";
 import { api, photoUrl } from "../api";
 import { Button, Spinner } from "./ui";
@@ -20,6 +21,7 @@ export function ConfirmForm({ batch, onUpdated, onZoom }: Props) {
 	const [guideNumber, setGuideNumber] = useState(first?.value ?? "");
 	const [carrier, setCarrier] = useState(first?.carrier ?? "");
 	const [invoiceNumber, setInvoiceNumber] = useState(invoices[0]?.value ?? "");
+	const [photosPerPage, setPhotosPerPage] = useState<PhotosPerPage | null>(null);
 	const [sending, setSending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +48,7 @@ export function ConfirmForm({ batch, onUpdated, onZoom }: Props) {
 					invoiceNumber: invoiceNumber.trim() || null,
 					sourcePhotoId:
 						selected && selected.value === guideNumber ? selected.photoId : null,
+					photosPerPage,
 				}),
 			);
 		} catch (err) {
@@ -55,6 +58,7 @@ export function ConfirmForm({ batch, onUpdated, onZoom }: Props) {
 	};
 
 	const fileName = `${toFileName(guideNumber.trim(), batch.id)}.pdf`;
+	const photoCount = batch.photos.length;
 	const input =
 		"mt-1 block w-full rounded-lg border-0 bg-white px-3 py-2.5 text-base text-neutral-900 ring-1 ring-neutral-300 focus:ring-2 focus:ring-brand dark:bg-neutral-800 dark:text-white dark:ring-neutral-600";
 
@@ -149,6 +153,27 @@ export function ConfirmForm({ batch, onUpdated, onZoom }: Props) {
 				</label>
 			</div>
 
+			<label className="mt-4 block text-sm font-medium text-neutral-700 dark:text-neutral-200">
+				Fotos por página en el PDF
+				<select
+					className={input}
+					value={photosPerPage ?? ""}
+					onChange={(e) =>
+						setPhotosPerPage(
+							e.target.value ? (Number(e.target.value) as PhotosPerPage) : null,
+						)
+					}
+				>
+					<option value="">Predeterminado</option>
+					{PHOTOS_PER_PAGE.map((n) => (
+						<option key={n} value={n}>
+							{n} por página ({Math.ceil(photoCount / n)}{" "}
+							{Math.ceil(photoCount / n) === 1 ? "página" : "páginas"})
+						</option>
+					))}
+				</select>
+			</label>
+
 			{guideNumber.trim() && (
 				<p className="mt-3 text-xs text-neutral-600 dark:text-neutral-400">
 					Se generará <span className="font-mono font-semibold">{fileName}</span>
@@ -162,3 +187,4 @@ export function ConfirmForm({ batch, onUpdated, onZoom }: Props) {
 		</form>
 	);
 }
+

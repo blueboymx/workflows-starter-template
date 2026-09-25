@@ -45,11 +45,36 @@ export interface Candidate {
 	score: number;
 }
 
+/** Retícula del PDF: cuántas fotos van en cada página. */
+export const PHOTOS_PER_PAGE = [1, 2, 3, 4, 6, 9] as const;
+export type PhotosPerPage = (typeof PHOTOS_PER_PAGE)[number];
+
+/** Columnas x filas de cada retícula (página carta vertical). */
+export const GRID_LAYOUT: Record<PhotosPerPage, { cols: number; rows: number }> = {
+	1: { cols: 1, rows: 1 },
+	2: { cols: 1, rows: 2 },
+	3: { cols: 1, rows: 3 },
+	4: { cols: 2, rows: 2 },
+	6: { cols: 2, rows: 3 },
+	9: { cols: 3, rows: 3 },
+};
+
+/** Retícula más chica en la que caben todas las fotos (máx. 9 por página). */
+export function autoPhotosPerPage(photoCount: number): PhotosPerPage {
+	return PHOTOS_PER_PAGE.find((n) => n >= photoCount) ?? 9;
+}
+
+export function isPhotosPerPage(value: unknown): value is PhotosPerPage {
+	return PHOTOS_PER_PAGE.includes(value as PhotosPerPage);
+}
+
 export interface ConfirmedGuide {
 	guideNumber: string;
 	carrier: string | null;
 	invoiceNumber: string | null;
 	sourcePhotoId: string | null;
+	/** null = automático según el número de fotos */
+	photosPerPage?: PhotosPerPage | null;
 }
 
 export interface Batch {

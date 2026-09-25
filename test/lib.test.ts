@@ -7,6 +7,7 @@ import {
 } from "../worker/lib/guide";
 import { detectImageType, readJpegOrientation } from "../worker/lib/image";
 import type { Photo, PhotoAnalysis } from "../worker/types";
+import { autoPhotosPerPage, isPhotosPerPage } from "../worker/types";
 import { TINY_JPEG, TINY_PNG, jpegWithOrientation } from "./fixtures";
 
 const photo = (id: string, analysis: Partial<PhotoAnalysis>): Photo => ({
@@ -109,5 +110,17 @@ describe("imágenes", () => {
 		expect(readJpegOrientation(TINY_JPEG)).toBe(1);
 		expect(readJpegOrientation(jpegWithOrientation(6))).toBe(6);
 		expect(readJpegOrientation(jpegWithOrientation(8, true))).toBe(8);
+	});
+});
+
+describe("retícula", () => {
+	it("elige la retícula más chica donde caben las fotos", () => {
+		expect([1, 2, 3, 4, 5, 6, 7, 9, 20].map(autoPhotosPerPage)).toEqual([
+			1, 2, 3, 4, 6, 6, 9, 9, 9,
+		]);
+	});
+	it("sólo acepta 1, 2, 3, 4, 6 o 9", () => {
+		expect([1, 2, 3, 4, 6, 9].every(isPhotosPerPage)).toBe(true);
+		expect([0, 5, 8, "4", null].some(isPhotosPerPage)).toBe(false);
 	});
 });

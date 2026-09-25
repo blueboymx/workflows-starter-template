@@ -7,7 +7,7 @@ import {
 	type PDFImage,
 	type PDFPage,
 } from "pdf-lib";
-import type { ConfirmedGuide } from "./types";
+import { GRID_LAYOUT, autoPhotosPerPage, type ConfirmedGuide } from "./types";
 import { detectImageType, readJpegOrientation } from "./lib/image";
 
 export const COMPANY_NAME = "RETAIL INTELIGENCIA ANALITICA";
@@ -114,7 +114,10 @@ function drawTextLogo(page: PDFPage, bold: PDFFont, regular: PDFFont, top: numbe
 	});
 }
 
-/** Genera el PDF del lote: una foto por página, con encabezado y pie. */
+/**
+ * Genera el PDF del lote: encabezado con logotipo y guía, y las fotos en una
+ * retícula de 1, 2, 3, 4, 6 o 9 por página.
+ */
 export async function buildBatchPdf(input: PdfInput): Promise<Uint8Array> {
 	const { guide, batchId, timeZone } = input;
 	const doc = await PDFDocument.create();
@@ -159,8 +162,20 @@ export async function buildBatchPdf(input: PdfInput): Promise<Uint8Array> {
 	}
 	if (images.length === 0) throw new Error("El lote no tiene imágenes válidas");
 
+	const perPage = guide.photosPerPage ?? autoPhotosPerPage(images.length);
+	const { cols, rows } = GRID_LAYOUT[perPage];
+	const pageCount = Math.ceil(images.length / perPage);
 	const top = PAGE_H - MARGIN;
-	images.forEach(({ image, orientation }, index) => {
+
+	// Área de fotos: debajo del título y arriba del pie
+	const area = { x: MARGIN, y: MARGIN + 18, w: PAGE_W - 2 * MARGIN, h: 0 };
+	area.h = top - 112 - area.y;
+	const gap = perPage === 1 ? 0 : 10;
+	const captionH = perPage === 1 ? 0 : 12;
+	const cellW = (area.w - gap * (cols - 1)) / cols;
+	const cellH = (area.h - gap * (rows - 1)) / rows;
+
+	for (let p = 0; p < pageCount; p++) {
 		const page = doc.addPage([PAGE_W, PAGE_H]);
 
 		// Encabezado: logotipo + fecha
@@ -175,9 +190,9 @@ export async function buildBatchPdf(input: PdfInput): Promise<Uint8Array> {
 		} else {
 			drawTextLogo(page, bold, regular, top);
 		}
-		const label = "EVIDENCIA DE ENVÍO";
-		page.drawText(safe(label), {
-			x: PAGE_W - MARGIN - bold.widthOfTextAtSize(safe(label), 9),
+		const label = safe("EVIDENCIA DE ENVÍO");
+		page.drawText(label, {
+			x: PAGE_W - MARGIN - bold.widthOfTextAtSize(label, 9),
 			y: top - 14,
 			size: 9,
 			font: bold,
@@ -208,16 +223,35 @@ export async function buildBatchPdf(input: PdfInput): Promise<Uint8Array> {
 			color: MUTED,
 		});
 
-		// Foto
-		drawPhoto(page, image, orientation, {
-			x: MARGIN,
-			y: MARGIN + 24,
-			w: PAGE_W - 2 * MARGIN,
-			h: top - 112 - (MARGIN + 24),
+		// Fotos en retícula, de izquierda a derecha y de arriba abajo
+		const pageImages = images.slice(p * perPage, (p + 1) * perPage);
+		pageImages.forEach(({ image, orientation }, i) => {
+			const col = i % cols;
+			const row = Math.floor(i / cols);
+			const cellX = area.x + col * (cellW + gap);
+			const cellTop = area.y + area.h - row * (cellH + gap);
+			drawPhoto(page, image, orientation, {
+				x: cellX,
+				y: cellTop - cellH + captionH,
+				w: cellW,
+				h: cellH - captionH,
+			});
+			if (captionH) {
+				const caption = `Foto ${p * perPage + i + 1}`;
+				page.drawText(caption, {
+					x: cellX + (cellW - regular.widthOfTextAtSize(caption, 7)) / 2,
+					y: cellTop - cellH + 2,
+					size: 7,
+					font: regular,
+					color: MUTED,
+				});
+			}
 		});
 
 		// Pie
-		const footer = safe(`Foto ${index + 1} de ${images.length}`);
+		const footer = safe(
+			`Página ${p + 1} de ${pageCount}   ·   ${images.length} ${images.length === 1 ? "foto" : "fotos"}`,
+		);
 		page.drawText(footer, { x: MARGIN, y: MARGIN, size: 8, font: regular, color: MUTED });
 		page.drawText(COMPANY_NAME, {
 			x: PAGE_W - MARGIN - regular.widthOfTextAtSize(COMPANY_NAME, 8),
@@ -226,7 +260,7 @@ export async function buildBatchPdf(input: PdfInput): Promise<Uint8Array> {
 			font: regular,
 			color: MUTED,
 		});
-	});
+	}
 
 	return doc.save();
 }

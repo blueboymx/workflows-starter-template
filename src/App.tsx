@@ -62,11 +62,11 @@ function App() {
 				</div>
 			</header>
 
-			<main className="mx-auto grid max-w-3xl gap-6 px-4 py-5">
+			<main className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-6 px-4 py-5">
 				<Uploader byId={byId} upsert={upsert} remove={remove} />
 
 				{pending.length > 0 && (
-					<section className="grid gap-3">
+					<section className="grid grid-cols-[minmax(0,1fr)] gap-3">
 						<h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
 							En proceso
 						</h2>
@@ -75,7 +75,7 @@ function App() {
 				)}
 
 				{open.length > 0 && (
-					<section className="grid gap-3">
+					<section className="grid grid-cols-[minmax(0,1fr)] gap-3">
 						<h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
 							Lotes abiertos
 						</h2>
@@ -83,7 +83,7 @@ function App() {
 					</section>
 				)}
 
-				<section className="grid gap-3">
+				<section className="grid grid-cols-[minmax(0,1fr)] gap-3">
 					<h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
 						PDFs generados
 					</h2>

@@ -4,7 +4,7 @@ import { buildBatchPdf } from "../worker/pdf";
 import { TINY_JPEG, TINY_PNG, jpegWithOrientation } from "./fixtures";
 
 describe("buildBatchPdf", () => {
-	it("genera una página carta vertical por foto con el título de la guía", async () => {
+	it("genera páginas carta vertical con el título de la guía (1 por página)", async () => {
 		const bytes = await buildBatchPdf({
 			batchId: "20260924-abc123",
 			guide: {
@@ -12,6 +12,7 @@ describe("buildBatchPdf", () => {
 				carrier: "FedEx",
 				invoiceNumber: "A-1520",
 				sourcePhotoId: null,
+				photosPerPage: 1,
 			},
 			photos: [
 				{ name: "a.jpg", bytes: TINY_JPEG },
@@ -41,5 +42,37 @@ describe("buildBatchPdf", () => {
 			timeZone: "UTC",
 		});
 		expect((await PDFDocument.load(bytes)).getPageCount()).toBe(1);
+	});
+
+	it.each([
+		[1, 7, 7],
+		[2, 7, 4],
+		[3, 7, 3],
+		[4, 7, 2],
+		[6, 7, 2],
+		[9, 7, 1],
+		[null, 5, 1], // automático: 5 fotos → retícula de 6
+		[null, 12, 2], // automático: máximo 9 por página
+	] as const)("retícula de %s con %i fotos → %i páginas", async (perPage, photos, pages) => {
+		const bytes = await buildBatchPdf({
+			batchId: "x",
+			guide: {
+				guideNumber: "1",
+				carrier: null,
+				invoiceNumber: null,
+				sourcePhotoId: null,
+				photosPerPage: perPage,
+			},
+			photos: Array.from({ length: photos }, (_, i) => ({
+				name: `${i}.jpg`,
+				bytes: i % 3 === 0 ? jpegWithOrientation(6) : i % 2 ? TINY_PNG : TINY_JPEG,
+			})),
+			logo: null,
+			generatedAt: new Date(),
+			timeZone: "UTC",
+		});
+		const doc = await PDFDocument.load(bytes);
+		expect(doc.getPageCount()).toBe(pages);
+		expect(doc.getPage(0).getSize()).toEqual({ width: 612, height: 792 });
 	});
 });

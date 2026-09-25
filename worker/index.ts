@@ -1,4 +1,4 @@
-import type { BatchSource, ConfirmedGuide, Photo } from "./types";
+import { isPhotosPerPage, type BatchSource, type ConfirmedGuide, type Photo } from "./types";
 import { detectImageType } from "./lib/image";
 import { GUIDE_CONFIRMED_EVENT, shipmentsStub } from "./workflow";
 
@@ -168,6 +168,7 @@ async function confirmGuide(request: Request, env: Env, batchId: string) {
 		carrier: clean(body?.carrier),
 		invoiceNumber: clean(body?.invoiceNumber),
 		sourcePhotoId: clean(body?.sourcePhotoId),
+		photosPerPage: isPhotosPerPage(body?.photosPerPage) ? body.photosPerPage : null,
 	};
 
 	const stub = shipmentsStub(env);

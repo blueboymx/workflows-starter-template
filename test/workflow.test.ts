@@ -82,6 +82,7 @@ describe("flujo de un lote", () => {
 				guideNumber: "794612345678",
 				carrier: "FedEx",
 				sourcePhotoId: label.id,
+				photosPerPage: 4,
 			}),
 		});
 		expect(confirm.status).toBe(200);
@@ -93,7 +94,7 @@ describe("flujo de un lote", () => {
 		const pdf = await api(`/api/batches/${batch.id}/pdf`);
 		expect(pdf.headers.get("Content-Type")).toBe("application/pdf");
 		const doc = await PDFDocument.load(new Uint8Array(await pdf.arrayBuffer()));
-		expect(doc.getPageCount()).toBe(2);
+		expect(doc.getPageCount()).toBe(1); // 2 fotos en retícula de 4
 		expect(doc.getTitle()).toBe("Guía 794612345678");
 	});
 
