@@ -157,3 +157,27 @@ export function toFileName(value: string, fallback: string): string {
 		.slice(0, 80);
 	return safe || fallback;
 }
+
+/**
+ * Orden de las fotos en el PDF: primero la foto de la guía de mensajería y
+ * después las demás en el orden en que se subieron. La guía es la foto que
+ * se eligió al confirmar o, si no, la que la IA marcó como "guia" con más
+ * confianza. Si no se identifica ninguna, se respeta el orden de subida.
+ */
+export function orderPhotosForPdf<T extends Pick<Photo, "id" | "analysis">>(
+	photos: T[],
+	sourcePhotoId: string | null,
+): T[] {
+	let guideId = photos.some((p) => p.id === sourcePhotoId) ? sourcePhotoId : null;
+	if (!guideId) {
+		let best = -1;
+		for (const p of photos) {
+			if (p.analysis?.kind === "guia" && p.analysis.confidence > best) {
+				best = p.analysis.confidence;
+				guideId = p.id;
+			}
+		}
+	}
+	if (!guideId) return photos;
+	return [...photos.filter((p) => p.id === guideId), ...photos.filter((p) => p.id !== guideId)];
+}

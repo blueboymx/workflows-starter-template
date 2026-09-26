@@ -6,7 +6,7 @@ App web (pensada para el teléfono) para identificar las fotos de los paquetes q
 2. **"¿Hay más fotos de este envío?"** Después de cada subida la app pregunta. Mientras el lote está abierto, todas las fotos van a ese lote. Al contestar "No" se cierra y **ya no acepta más fotos**, así que dos envíos no se mezclan.
 3. **Detección con IA.** Workers AI (modelo de visión) revisa cada foto: si es guía, factura o paquete, y lee el número de guía, la paquetería y el número de factura.
 4. **Confirmación.** La app muestra lo que encontró y pregunta cuál es la guía. Se puede corregir o capturar a mano.
-5. **PDF.** Se genera un PDF **tamaño carta vertical** con el logotipo de RETAIL INTELIGENCIA ANALITICA, el número de guía en el título y todas las fotos del lote en una **retícula de 1, 2, 3, 4, 6 o 9 fotos por página** (primero la de la guía). El archivo se llama `<número de guía>.pdf`.
+5. **PDF.** Se genera un PDF **tamaño carta vertical** con el logotipo de RETAIL INTELIGENCIA ANALITICA, el número de guía en el título y todas las fotos del lote en una **retícula de 1, 2, 3, 4, 6 o 9 fotos por página** (la foto de la guía de mensajería va primero, como una foto más; si no se identifica, se respeta el orden de subida). El número de guía va en grande en el encabezado superior derecho, debajo de la orden / factura. El archivo se llama `<número de guía>.pdf`.
 6. **Flujo de envíos (opcional).** Al terminar se manda un webhook con la guía, la factura y el enlace al PDF, para conectar el flujo complementario de envíos.
 
 ## Arquitectura (Cloudflare)

@@ -5,7 +5,7 @@ import { isPhotosPerPage, type ConfirmedGuide, type Photo, type PhotoAnalysis } 
 import { analyzePhoto } from "./ai";
 import { buildBatchPdf } from "./pdf";
 import { detectImageType } from "./lib/image";
-import { rankCandidates, toFileName } from "./lib/guide";
+import { orderPhotosForPdf, rankCandidates, toFileName } from "./lib/guide";
 
 export interface BatchParams {
 	batchId: string;
@@ -104,10 +104,7 @@ export class PackageBatchWorkflow extends WorkflowEntrypoint<Env, BatchParams> {
 				"generate pdf",
 				{ retries: { limit: 2, delay: "5 seconds" }, timeout: "5 minutes" },
 				async () => {
-					const ordered = [
-						...photos.filter((p) => p.id === guide.sourcePhotoId),
-						...photos.filter((p) => p.id !== guide.sourcePhotoId),
-					];
+					const ordered = orderPhotosForPdf(analyzed, guide.sourcePhotoId);
 					const images = [];
 					for (const photo of ordered) {
 						const object = await this.env.PHOTOS.get(photo.key);

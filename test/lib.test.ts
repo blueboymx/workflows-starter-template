@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	findTrackingLikeCodes,
+	orderPhotosForPdf,
 	parseAnalysis,
 	rankCandidates,
 	toFileName,
@@ -122,5 +123,27 @@ describe("retícula", () => {
 	it("sólo acepta 1, 2, 3, 4, 6 o 9", () => {
 		expect([1, 2, 3, 4, 6, 9].every(isPhotosPerPage)).toBe(true);
 		expect([0, 5, 8, "4", null].some(isPhotosPerPage)).toBe(false);
+	});
+});
+
+describe("orderPhotosForPdf", () => {
+	const photos = [
+		photo("caja", { kind: "paquete" }),
+		photo("guia1", { kind: "guia", confidence: 0.6 }),
+		photo("guia2", { kind: "guia", confidence: 0.9 }),
+		photo("factura", { kind: "factura" }),
+	];
+	const ids = (list: Photo[]) => list.map((p) => p.id);
+
+	it("pone primero la foto elegida al confirmar", () => {
+		expect(ids(orderPhotosForPdf(photos, "factura"))).toEqual(["factura", "caja", "guia1", "guia2"]);
+	});
+	it("si no se eligió, usa la guía detectada con más confianza", () => {
+		expect(ids(orderPhotosForPdf(photos, null))).toEqual(["guia2", "caja", "guia1", "factura"]);
+		expect(ids(orderPhotosForPdf(photos, "no-existe"))[0]).toBe("guia2");
+	});
+	it("si no hay guía, respeta el orden de subida", () => {
+		const sinGuia = [photo("a", {}), photo("b", { kind: "paquete" })];
+		expect(ids(orderPhotosForPdf(sinGuia, null))).toEqual(["a", "b"]);
 	});
 });

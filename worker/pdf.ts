@@ -145,14 +145,12 @@ export async function buildBatchPdf(input: PdfInput): Promise<Uint8Array> {
 			timeStyle: "short",
 		}),
 	);
-	const details = safe(
-		[
-			guide.carrier ? `Paquetería: ${guide.carrier}` : null,
-			guide.invoiceNumber ? `Factura: ${guide.invoiceNumber}` : null,
-			`Lote: ${batchId}`,
-		]
-			.filter(Boolean)
-			.join("   ·   "),
+	const guideText = safe(guide.guideNumber);
+	const orderLine = safe(
+		guide.invoiceNumber ? `ORDEN / FACTURA: ${guide.invoiceNumber}` : "NÚMERO DE GUÍA",
+	);
+	const guideLine = safe(
+		[guide.carrier ? `GUÍA ${guide.carrier.toUpperCase()}` : "GUÍA", dateText].join("   ·   "),
 	);
 
 	const images: { image: PDFImage; orientation: number }[] = [];
@@ -167,9 +165,12 @@ export async function buildBatchPdf(input: PdfInput): Promise<Uint8Array> {
 	const pageCount = Math.ceil(images.length / perPage);
 	const top = PAGE_H - MARGIN;
 
-	// Área de fotos: debajo del título y arriba del pie
+	// Área de fotos: debajo del encabezado y arriba del pie
 	const area = { x: MARGIN, y: MARGIN + 18, w: PAGE_W - 2 * MARGIN, h: 0 };
-	area.h = top - 112 - area.y;
+	area.h = top - 70 - area.y;
+	const rightEdge = PAGE_W - MARGIN;
+	const headerW = 330; // ancho máximo del bloque derecho (a la izquierda va el logo)
+	const guideSize = fitText(bold, guideText, 26, headerW);
 	const gap = perPage === 1 ? 0 : 10;
 	const captionH = perPage === 1 ? 0 : 12;
 	const cellW = (area.w - gap * (cols - 1)) / cols;
@@ -178,7 +179,7 @@ export async function buildBatchPdf(input: PdfInput): Promise<Uint8Array> {
 	for (let p = 0; p < pageCount; p++) {
 		const page = doc.addPage([PAGE_W, PAGE_H]);
 
-		// Encabezado: logotipo + fecha
+		// Encabezado izquierdo: logotipo
 		if (logo) {
 			const s = Math.min(170 / logo.width, 44 / logo.height);
 			page.drawImage(logo, {
@@ -190,37 +191,36 @@ export async function buildBatchPdf(input: PdfInput): Promise<Uint8Array> {
 		} else {
 			drawTextLogo(page, bold, regular, top);
 		}
-		const label = safe("EVIDENCIA DE ENVÍO");
-		page.drawText(label, {
-			x: PAGE_W - MARGIN - bold.widthOfTextAtSize(label, 9),
-			y: top - 14,
-			size: 9,
+
+		// Encabezado derecho: orden / factura y, abajo, el número de guía en grande
+		const orderSize = fitText(bold, orderLine, 9, headerW);
+		page.drawText(orderLine, {
+			x: rightEdge - bold.widthOfTextAtSize(orderLine, orderSize),
+			y: top - 9,
+			size: orderSize,
 			font: bold,
 			color: MUTED,
 		});
-		page.drawText(dateText, {
-			x: PAGE_W - MARGIN - regular.widthOfTextAtSize(dateText, 9),
-			y: top - 28,
-			size: 9,
+		page.drawText(guideText, {
+			x: rightEdge - bold.widthOfTextAtSize(guideText, guideSize),
+			y: top - 36,
+			size: guideSize,
+			font: bold,
+			color: INK,
+		});
+		const infoSize = fitText(regular, guideLine, 8, headerW);
+		page.drawText(guideLine, {
+			x: rightEdge - regular.widthOfTextAtSize(guideLine, infoSize),
+			y: top - 49,
+			size: infoSize,
 			font: regular,
 			color: MUTED,
 		});
 		page.drawLine({
-			start: { x: MARGIN, y: top - 52 },
-			end: { x: PAGE_W - MARGIN, y: top - 52 },
+			start: { x: MARGIN, y: top - 58 },
+			end: { x: rightEdge, y: top - 58 },
 			thickness: 1,
 			color: rgb(0.85, 0.87, 0.9),
-		});
-
-		// Título con el número de guía
-		const titleSize = fitText(bold, title, 22, PAGE_W - 2 * MARGIN);
-		page.drawText(title, { x: MARGIN, y: top - 80, size: titleSize, font: bold, color: INK });
-		page.drawText(details, {
-			x: MARGIN,
-			y: top - 98,
-			size: fitText(regular, details, 10, PAGE_W - 2 * MARGIN),
-			font: regular,
-			color: MUTED,
 		});
 
 		// Fotos en retícula, de izquierda a derecha y de arriba abajo
@@ -250,7 +250,7 @@ export async function buildBatchPdf(input: PdfInput): Promise<Uint8Array> {
 
 		// Pie
 		const footer = safe(
-			`Página ${p + 1} de ${pageCount}   ·   ${images.length} ${images.length === 1 ? "foto" : "fotos"}`,
+			`Página ${p + 1} de ${pageCount}   ·   ${images.length} ${images.length === 1 ? "foto" : "fotos"}   ·   Lote ${batchId}`,
 		);
 		page.drawText(footer, { x: MARGIN, y: MARGIN, size: 8, font: regular, color: MUTED });
 		page.drawText(COMPANY_NAME, {
